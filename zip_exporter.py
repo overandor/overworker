@@ -90,19 +90,33 @@ class ZIPExporter:
         return json.dumps(data, indent=2)
     
     def _create_secret_report(self, secret_matches: List) -> str:
-        """Create secret scan report."""
+        """Create secret scan report with redacted values."""
         lines = ["SECRET SCAN RESULTS", "=" * 50, ""]
         
         for match in secret_matches:
             lines.append(f"File: {match.file_path}")
             lines.append(f"Line: {match.line_number}")
             lines.append(f"Type: {match.secret_type}")
-            lines.append(f"Matched: {match.matched_text}")
+            # Redact actual secret value for security
+            redacted_value = self._redact_secret(match.matched_text)
+            lines.append(f"Matched: {redacted_value}")
             lines.append("-" * 30)
-            lines.append(match.context)
+            # Also redact context
+            redacted_context = self._redact_secret(match.context)
+            lines.append(redacted_context)
             lines.append("")
         
         return "\n".join(lines)
+    
+    def _redact_secret(self, text: str) -> str:
+        """Redact secret values in text."""
+        if not text:
+            return text
+        # If text is longer than 10 chars, show first 4 and last 4 with asterisks
+        if len(text) > 10:
+            return text[:4] + "****" + text[-4:]
+        # If shorter, just show asterisks
+        return "*" * len(text)
     
     def _create_claims_report(self, claims: List) -> str:
         """Create claims analysis report."""

@@ -28,7 +28,7 @@ class RepoRequest(BaseModel):
     def validate_github_url(self):
         """Validate that URL is a GitHub repository URL."""
         import re
-        pattern = r'^https://github\.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+/?$'
+        pattern = r'^https://github\.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+/?$'
         if not re.match(pattern, self.url):
             raise ValueError("URL must be a valid GitHub repository URL (e.g., https://github.com/owner/repo)")
         return True
@@ -512,9 +512,14 @@ async def analyze_repo(request: RepoRequest):
             files
         )
         
-        # Store ZIP in memory (in production, use S3 or similar)
-        zip_filename = f"{repo_structure.repo}_overworker_package.zip"
-        zip_storage[zip_filename] = zip_data
+        # Store ZIP in memory with timestamp for cleanup (in production, use S3 or similar)
+        import time
+        zip_filename = f"{repo_structure.repo}_overworker_package_{int(time.time())}.zip"
+        zip_storage[zip_filename] = {
+            "data": zip_data,
+            "timestamp": time.time(),
+            "repo_url": request.url
+        }
         
         return {
             "score": score_result.score,
@@ -562,10 +567,19 @@ zip_storage = {}
 @app.get("/download/{filename}")
 async def download_zip(filename: str):
     """Download ZIP package from in-memory storage."""
+    import time
+    
+    # Clean up old ZIPs (older than 1 hour)
+    current_time = time.time()
+    keys_to_delete = [k for k, v in zip_storage.items() if current_time - v["timestamp"] > 3600]
+    for key in keys_to_delete:
+        del zip_storage[key]
+    
     if filename not in zip_storage:
         raise HTTPException(status_code=404, detail="ZIP not found. Please analyze a repository first.")
     
-    zip_data = zip_storage[filename]
+    zip_entry = zip_storage[filename]
+    zip_data = zip_entry["data"]
     from fastapi.responses import Response
     return Response(content=zip_data, media_type="application/zip", headers={
         "Content-Disposition": f"attachment; filename={filename}"
