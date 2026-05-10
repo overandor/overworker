@@ -25,6 +25,14 @@ app = FastAPI(title="Overworker", description="AI execution layer for repo verif
 class RepoRequest(BaseModel):
     url: str
 
+    def validate_github_url(self):
+        """Validate that URL is a GitHub repository URL."""
+        import re
+        pattern = r'^https://github\.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+/?$'
+        if not re.match(pattern, self.url):
+            raise ValueError("URL must be a valid GitHub repository URL (e.g., https://github.com/owner/repo)")
+        return True
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -400,6 +408,12 @@ def extract_readme(files: list) -> str:
 async def analyze_repo(request: RepoRequest):
     """Analyze a GitHub repository or local directory and return results."""
     
+    # Validate GitHub URL
+    try:
+        request.validate_github_url()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
     ingestor = GitHubIngestor()
     secret_scanner = SecretScanner()
     claim_labeler = ClaimLabeler()
@@ -500,6 +514,7 @@ async def analyze_repo(request: RepoRequest):
         
         # Store ZIP in memory (in production, use S3 or similar)
         zip_filename = f"{repo_structure.repo}_overworker_package.zip"
+        zip_storage[zip_filename] = zip_data
         
         return {
             "score": score_result.score,
@@ -540,12 +555,21 @@ async def analyze_repo(request: RepoRequest):
         await ingestor.close()
 
 
+# In-memory ZIP storage (for demo purposes)
+zip_storage = {}
+
+
 @app.get("/download/{filename}")
 async def download_zip(filename: str):
-    """Download ZIP package (demo endpoint)."""
-    # In production, serve from storage
-    # For demo, return error since we don't persist
-    raise HTTPException(status_code=404, detail="ZIP not persisted in demo. Use the analyze endpoint.")
+    """Download ZIP package from in-memory storage."""
+    if filename not in zip_storage:
+        raise HTTPException(status_code=404, detail="ZIP not found. Please analyze a repository first.")
+    
+    zip_data = zip_storage[filename]
+    from fastapi.responses import Response
+    return Response(content=zip_data, media_type="application/zip", headers={
+        "Content-Disposition": f"attachment; filename={filename}"
+    })
 
 
 if __name__ == "__main__":

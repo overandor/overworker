@@ -71,7 +71,7 @@ class GitHubIngestor:
         
         return False
     
-    async def ingest_repo(self, url: str) -> RepoStructure:
+    async def ingest_repo(self, url: str, max_files: int = 1000, max_total_bytes: int = 50_000_000) -> RepoStructure:
         """Main ingestion method - clones repo and reads all text files."""
         owner, repo = self.parse_repo_url(url)
         
