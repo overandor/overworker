@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overworker - AI Execution Layer</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="animated-background"></div>
+    
+    <!-- Top Navigation -->
+    <nav class="top-nav glass-container">
+        <div class="nav-content">
+            <div class="logo">
+                <h1>⚡ OVERWORKER</h1>
+            </div>
+            <div class="nav-categories">
+                <a href="/" class="nav-pill">Home</a>
+                <a href="/features" class="nav-pill">Features</a>
+                <a href="/pricing" class="nav-pill">Pricing</a>
+                <a href="/about" class="nav-pill">About</a>
+                <a href="/docs" class="nav-pill">Docs</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav glass-container">
+        <div class="bottom-content">
+            <a href="/contact" class="bottom-link">Contact</a>
+            <a href="/pricing" class="bottom-link">Pricing</a>
+            <a href="/docs" class="bottom-link">Documentation</a>
+            <div class="social-links">
+                <a href="#" class="social-icon">𝕏</a>
+                <a href="#" class="social-icon">in</a>
+                <a href="#" class="social-icon">⭐</a>
+            </div>
+        </div>
+    </nav>
+    
+    <script src="/static/main.js"></script>
+</body>
+</html>

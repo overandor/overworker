@@ -1,8 +1,18 @@
+---
+title: Overworker
+emoji: ⚡
+colorFrom: purple
+colorTo: blue
+sdk: docker
+app_file: main.py
+pinned: false
+---
+
 # Overworker
 
-**AI execution layer - GitHub repo to verified package ZIP**
+**AI execution layer - GitHub repo to verified package ZIP with production-grade dashboard**
 
-Overworker converts messy repositories into verified, inspectable, saleable assets through automated analysis, scoring, and packaging.
+Overworker converts messy repositories into verified, inspectable, saleable assets through automated analysis, scoring, and packaging. Features a modern neoglassicmorphic dashboard with Stripe payment integration.
 
 ## What It Does
 
@@ -78,6 +88,21 @@ vercel
 ```
 
 Use the included `vercel.json` configuration.
+
+### Deploy to Hugging Face Spaces
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the FastAPI server
+python main.py
+```
+
+Or deploy directly to Hugging Face Spaces by:
+1. Creating a new Space with Docker SDK
+2. Uploading all files including Dockerfile
+3. The Dockerfile will be automatically detected and used
 
 ## Overwork Score Bands
 
@@ -180,7 +205,8 @@ Each exported ZIP includes:
 ## Architecture
 
 ```
-main.py (FastAPI dashboard)
+main.py (FastAPI dashboard with neoglassicmorphic UI)
+├── templates/index.html (Landing page with Stripe integration)
 ├── github_ingestion.py (Repo fetching via git)
 ├── secret_scanner.py (Secret detection)
 ├── claim_labeler.py (Claim extraction)

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overworker - AI Execution Layer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .neoglassic {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 
+                0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                inset 0 8px 32px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .neoglassic-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .neoglassic-dark {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 0, 0, 0.37),
+                inset 0 8px 32px 0 rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .input-field {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(102, 126, 234, 0.5);
+            outline: none;
+        }
+        
+        .score-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.8); }
+        }
+        
+        .glow {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen neoglassic-dark">
+    <!-- Navigation -->
+    <nav class="neoglassic-card px-6 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full neoglassic flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold text-white">Overworker</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <a href="#features" class="text-gray-300 hover:text-white transition">Features</a>
+                <a href="#pricing" class="text-gray-300 hover:text-white transition">Pricing</a>
+                <button class="btn-primary px-6 py-2 rounded-lg text-white font-semibold">
+                    Get Started
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6">
+                Transform <span class="gradient-text">Messy Repos</span>
+                <br>Into <span class="gradient-text">Verified Assets</span>
+            </h1>
+            <p class="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                AI-powered GitHub repository analysis with security scanning, quality scoring, and automated packaging. Convert prototypes into production-ready assets instantly.
+            </p>
+            
+            <!-- Analysis Input -->
+            <div class="max-w-2xl mx-auto mb-8">
+                <div class="neoglassic-card rounded-2xl p-6">
+                    <div class="flex space-x-4">
+                        <input 
+                            type="text" 
+                            id="repoUrl" 
+                            placeholder="https://github.com/owner/repo"
+                            class="input-field flex-1 px-6 py-4 rounded-xl text-white placeholder-gray-400"
+                            value="https://github.com/overandor/overworker"
+                        >
+                        <button 
+                            onclick="analyzeRepo()"
+                            class="btn-primary px-8 py-4 rounded-xl text-white font-semibold glow"
+                        >
+                            Analyze
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section (Hidden by default) -->
+            <div id="results" class="hidden max-w-4xl mx-auto">
+                <div class="neoglassic-card rounded-2xl p-8 text-left">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white">Analysis Results</h2>
+                        <button 
+                            onclick="downloadZip()"
+                            id="downloadBtn"
+                            class="btn-primary px-6 py-3 rounded-lg text-white font-semibold"
+                        >
+                            Download ZIP Package
+                        </button>
+                    </div>
+                    
+                    <!-- Score Section -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-300">Overwork Score</span>
+                            <span id="scoreValue" class="text-3xl font-bold gradient-text">0.00</span>
+                        </div>
+                        <div class="w-full h-4 bg-gray-700 rounded-full overflow-hidden">
+                            <div id="scoreBar" class="score-bar h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                        <p id="scoreBand" class="text-gray-400 mt-2">SCAFFOLD</p>
+                    </div>
+
+                    <!-- Component Scores -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="neoglassic-card rounded-lg p-4">
+                            <p class="text-gray-400 text-sm">Code Quality</p>
+                            <p id="codeQuality" class="text-xl font-bold text-white">0.00</p>
+                        </div>
+                        <div class="neoglassic-card rounded-lg p-4">
+                            <p class="text-gray-400 text-sm">Documentation</p>
+                            <p id="documentation" class="text-xl font-bold text-white">0.00</p>
+                        </div>
+                        <div class="neoglassic-card rounded-lg p-4">
+                            <p class="text-gray-400 text-sm">Security</p>
+                            <p id="security" class="text-xl font-bold text-white">0.00</p>
+                        </div>
+                        <div class="neoglassic-card rounded-lg p-4">
+                            <p class="text-gray-400 text-sm">Tests</p>
+                            <p id="tests" class="text-xl font-bold text-white">0.00</p>
+                        </div>
+                    </div>
+
+                    <!-- KPI Summary -->
+                    <div class="neoglassic-card rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-semibold text-white mb-3">Key Performance Indicators</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-gray-400 text-sm">Files Analyzed</p>
+                                <p id="filesAnalyzed" class="text-lg font-bold text-white">0</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-sm">Secrets Found</p>
+                                <p id="secretsFound" class="text-lg font-bold text-white">0</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-sm">Claims Verified</p>
+                                <p id="claimsVerified" class="text-lg font-bold text-white">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weakest Link -->
+                    <div class="neoglassic-card rounded-lg p-4">
+                        <p class="text-gray-400 text-sm">Weakest Link</p>
+                        <p id="weakestLink" class="text-lg font-bold text-white">None</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-bold text-white text-center mb-12">Powerful Features</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="neoglassic-card rounded-2xl p-6">
+                    <div class="w-12 h-12 rounded-full neoglassic flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Security Scanning</h3>
+                    <p class="text-gray-300">Automated detection of API keys, tokens, and sensitive data patterns in your codebase.</p>
+                </div>
+                <div class="neoglassic-card rounded-2xl p-6">
+                    <div class="w-12 h-12 rounded-full neoglassic flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Quality Scoring</h3>
+                    <p class="text-gray-300">Weakest-link scoring system that identifies your repository's commercialization readiness.</p>
+                </div>
+                <div class="neoglassic-card rounded-2xl p-6">
+                    <div class="w-12 h-12 rounded-full neoglassic flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">ZIP Packaging</h3>
+                    <p class="text-gray-300">Export complete analysis reports and verified packages as downloadable ZIP archives.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-bold text-white text-center mb-12">Simple Pricing</h2>
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div class="neoglassic-card rounded-2xl p-8">
+                    <h3 class="text-xl font-semibold text-white mb-2">Starter</h3>
+                    <p class="text-4xl font-bold text-white mb-4">$0<span class="text-lg text-gray-400">/mo</span></p>
+                    <ul class="space-y-3 mb-6">
+                        <li class="text-gray-300">5 analyses/month</li>
+                        <li class="text-gray-300">Basic scoring</li>
+                        <li class="text-gray-300">ZIP export</li>
+                    </ul>
+                    <button onclick="subscribe('starter')" class="w-full btn-primary py-3 rounded-xl text-white font-semibold">
+                        Get Started
+                    </button>
+                </div>
+                <div class="neoglassic rounded-2xl p-8 border-2 border-purple-500">
+                    <div class="text-purple-400 text-sm font-semibold mb-2">POPULAR</div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Professional</h3>
+                    <p class="text-4xl font-bold text-white mb-4">$29<span class="text-lg text-gray-400">/mo</span></p>
+                    <ul class="space-y-3 mb-6">
+                        <li class="text-gray-300">50 analyses/month</li>
+                        <li class="text-gray-300">Advanced scoring</li>
+                        <li class="text-gray-300">Priority support</li>
+                        <li class="text-gray-300">API access</li>
+                    </ul>
+                    <button onclick="subscribe('professional')" class="w-full btn-primary py-3 rounded-xl text-white font-semibold glow">
+                        Get Started
+                    </button>
+                </div>
+                <div class="neoglassic-card rounded-2xl p-8">
+                    <h3 class="text-xl font-semibold text-white mb-2">Enterprise</h3>
+                    <p class="text-4xl font-bold text-white mb-4">$99<span class="text-lg text-gray-400">/mo</span></p>
+                    <ul class="space-y-3 mb-6">
+                        <li class="text-gray-300">Unlimited analyses</li>
+                        <li class="text-gray-300">Custom integrations</li>
+                        <li class="text-gray-300">Dedicated support</li>
+                        <li class="text-gray-300">SLA guarantee</li>
+                    </ul>
+                    <button onclick="subscribe('enterprise')" class="w-full btn-primary py-3 rounded-xl text-white font-semibold">
+                        Contact Sales
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="neoglassic-card py-8 px-6 mt-20">
+        <div class="max-w-7xl mx-auto text-center">
+            <p class="text-gray-300">© 2026 Overworker. AI execution layer for GitHub repositories.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentZipUrl = '';
+        let currentFilename = '';
+
+        async function subscribe(planId) {
+            try {
+                const response = await fetch('/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan_id: planId })
+                });
+                const data = await response.json();
+                
+                if (data.free) {
+                    alert('You are now on the ' + planId + ' plan!');
+                } else if (data.url) {
+                    window.location.href = data.url;
+                }
+            } catch (error) {
+                alert('Subscription failed: ' + error.message);
+            }
+        }
+
+        async function analyzeRepo() {
+            const repoUrl = document.getElementById('repoUrl').value;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: repoUrl })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    btn.disabled = false;
+                    btn.textContent = 'Analyze';
+                    return;
+                }
+
+                // Update UI with results
+                document.getElementById('results').classList.remove('hidden');
+                document.getElementById('scoreValue').textContent = data.score.toFixed(2);
+                document.getElementById('scoreBar').style.width = `${data.score * 100}%`;
+                document.getElementById('scoreBand').textContent = data.band.toUpperCase();
+                document.getElementById('weakestLink').textContent = data.weakest_link;
+                
+                document.getElementById('codeQuality').textContent = data.component_scores.code_quality.toFixed(2);
+                document.getElementById('documentation').textContent = data.component_scores.documentation.toFixed(2);
+                document.getElementById('security').textContent = data.component_scores.security.toFixed(2);
+                document.getElementById('tests').textContent = data.component_scores.tests.toFixed(2);
+                
+                document.getElementById('filesAnalyzed').textContent = data.files_analyzed;
+                document.getElementById('secretsFound').textContent = data.secret_summary.total_matches;
+                document.getElementById('claimsVerified').textContent = data.claim_summary.total_claims;
+
+                currentZipUrl = data.zip_url;
+                currentFilename = data.filename;
+
+                btn.disabled = false;
+                btn.textContent = 'Analyze';
+            } catch (error) {
+                alert('Analysis failed: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Analyze';
+            }
+        }
+
+        async function downloadZip() {
+            if (!currentZipUrl) return;
+            
+            try {
+                const response = await fetch(currentZipUrl);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = currentFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Download failed: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

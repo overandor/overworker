@@ -1,25 +1,22 @@
-"""Overworker FastAPI dashboard - GitHub repo to verified package ZIP."""
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse
+"""Overworker - AI execution layer for GitHub repo verification."""
+import os
+import subprocess
+import time
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, Response, JSONResponse
 from pydantic import BaseModel
-import uvicorn
-
-from github_ingestion import GitHubIngestor, RepoStructure
+import stripe
+from github_ingestion import GitHubIngestor, RepoFile, RepoStructure
 from secret_scanner import SecretScanner, SecretMatch
 from claim_labeler import ClaimLabeler, Claim
 from verification_firewall import VerificationFirewall
-from overwork_score import OverworkScorer
-from report_generator import ReportGenerator
-from zip_exporter import ZIPExporter
-from tokenization import RepoTokenizer, TokenizedRepo
+from overwork_score import OverworkScorer, ReadinessBand
+from tokenization import TokenizedRepo
 from kpi_computation import KPIEngine, KPIReport
 from endpoint_appraisal import EndpointAppraiser, EServiceAppraisal
-from inverse_derivative import InverseDerivativeEngine, DerivativePortfolio
-import subprocess
-import os
-
-
-app = FastAPI(title="Overworker", description="AI execution layer for repo verification")
+from inverse_derivative import DerivativePortfolio, InverseDerivativeEngine
+from report_generator import ReportGenerator
+from zip_exporter import ZIPExporter
 
 
 class RepoRequest(BaseModel):
@@ -34,300 +31,114 @@ class RepoRequest(BaseModel):
         return True
 
 
+app = FastAPI()
+
+# Stripe configuration
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_placeholder")
+
+
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Home page with repo input form."""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Overworker - GitHub Repo Verification</title>
-        <style>
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                max-width: 800px;
-                margin: 50px auto;
-                padding: 20px;
-                background: #f5f5f5;
-            }
-            .container {
-                background: white;
-                padding: 40px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            h1 {
-                color: #333;
-                margin-bottom: 10px;
-            }
-            .subtitle {
-                color: #666;
-                margin-bottom: 30px;
-            }
-            input[type="text"] {
-                width: 100%;
-                padding: 12px;
-                border: 2px solid #ddd;
-                border-radius: 4px;
-                font-size: 16px;
-                margin-bottom: 20px;
-                box-sizing: border-box;
-            }
-            input[type="text"]:focus {
-                border-color: #0066cc;
-                outline: none;
-            }
-            button {
-                background: #0066cc;
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                font-size: 16px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: 600;
-            }
-            button:hover {
-                background: #0052a3;
-            }
-            button:disabled {
-                background: #ccc;
-                cursor: not-allowed;
-            }
-            .examples {
-                margin-top: 20px;
-                padding: 15px;
-                background: #f9f9f9;
-                border-radius: 4px;
-            }
-            .examples h3 {
-                margin-top: 0;
-                font-size: 14px;
-                color: #666;
-            }
-            .example-link {
-                color: #0066cc;
-                text-decoration: none;
-                cursor: pointer;
-            }
-            .example-link:hover {
-                text-decoration: underline;
-            }
-            #loading {
-                display: none;
-                text-align: center;
-                margin-top: 20px;
-            }
-            .spinner {
-                border: 3px solid #f3f3f3;
-                border-top: 3px solid #0066cc;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin: 0 auto;
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            #results {
-                display: none;
-                margin-top: 30px;
-            }
-            .score-card {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 30px;
-                border-radius: 8px;
-                margin-bottom: 20px;
-            }
-            .score-value {
-                font-size: 48px;
-                font-weight: bold;
-            }
-            .score-band {
-                font-size: 24px;
-                margin-top: 10px;
-            }
-            .download-btn {
-                background: #28a745;
-                margin-top: 20px;
-            }
-            .download-btn:hover {
-                background: #218838;
-            }
-            .kpi-section {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                margin-top: 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .kpi-section h3 {
-                margin-top: 0;
-                color: #333;
-                font-size: 16px;
-                margin-bottom: 15px;
-            }
-            .kpi-item {
-                padding: 8px 0;
-                border-bottom: 1px solid #eee;
-                font-size: 14px;
-            }
-            .kpi-item:last-child {
-                border-bottom: none;
-            }
-            .error {
-                background: #fee;
-                color: #c33;
-                padding: 15px;
-                border-radius: 4px;
-                margin-top: 20px;
-                display: none;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Overworker</h1>
-            <p class="subtitle">AI execution layer - GitHub repo to verified package ZIP</p>
-            
-            <form id="repoForm">
-                <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo" required>
-                <button type="submit" id="submitBtn">Analyze Repository</button>
-            </form>
-            
-            <div class="examples">
-                <h3>Example repositories:</h3>
-                <a class="example-link" onclick="setUrl('https://github.com/torvalds/linux')">torvalds/linux</a> •
-                <a class="example-link" onclick="setUrl('https://github.com/python/cpython')">python/cpython</a> •
-                <a class="example-link" onclick="setUrl('https://github.com/facebook/react')">facebook/react</a>
-            </div>
-            
-            <div id="loading">
-                <div class="spinner"></div>
-                <p style="margin-top: 15px; color: #666;">Analyzing repository...</p>
-            </div>
-            
-            <div id="error" class="error"></div>
-            
-            <div id="results">
-                <div class="score-card">
-                    <div class="score-value" id="scoreValue">0.000</div>
-                    <div class="score-band" id="scoreBand">FRAGMENT</div>
-                    <div style="margin-top: 10px; opacity: 0.9;">Weakest Link: <span id="weakestLink">-</span></div>
-                </div>
-                
-                <div class="kpi-section">
-                    <h3>KPI Report</h3>
-                    <div id="kpiList"></div>
-                </div>
-                
-                <div class="kpi-section">
-                    <h3>E-Service Appraisal</h3>
-                    <div id="eServiceData"></div>
-                </div>
-                
-                <div class="kpi-section">
-                    <h3>Derivative Portfolio</h3>
-                    <div id="derivativeData"></div>
-                </div>
-                
-                <button class="download-btn" onclick="downloadZip()">Download ZIP Package</button>
-            </div>
-        </div>
+async def dashboard():
+    """Serve the dashboard HTML - direct file read to avoid Jinja2 caching issues."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/static/styles.css")
+async def styles_css():
+    """Serve the CSS file."""
+    css_path = os.path.join(os.path.dirname(__file__), "templates", "styles.css")
+    from fastapi.responses import FileResponse
+    return FileResponse(css_path, media_type="text/css")
+
+
+@app.get("/features", response_class=HTMLResponse)
+async def features():
+    """Serve the features page."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "features.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/pricing", response_class=HTMLResponse)
+async def pricing():
+    """Serve the pricing page."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "pricing.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/about", response_class=HTMLResponse)
+async def about():
+    """Serve the about page."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "about.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact():
+    """Serve the contact page."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "contact.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/docs", response_class=HTMLResponse)
+async def docs():
+    """Serve the documentation page."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "docs.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+class CheckoutRequest(BaseModel):
+    plan_id: str
+
+
+@app.post("/create-checkout-session")
+async def create_checkout_session(request_data: CheckoutRequest):
+    """Create a Stripe checkout session for subscription."""
+    try:
+        # Plan pricing
+        plans = {
+            "starter": {"price": 0, "name": "Starter"},
+            "professional": {"price": 2900, "name": "Professional"},  # $29.00 in cents
+            "enterprise": {"price": 9900, "name": "Enterprise"}  # $99.00 in cents
+        }
         
-        <script>
-            let currentZipUrl = null;
-            
-            function setUrl(url) {
-                document.getElementById('repoUrl').value = url;
-            }
-            
-            document.getElementById('repoForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const url = document.getElementById('repoUrl').value;
-                
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('results').style.display = 'none';
-                document.getElementById('error').style.display = 'none';
-                document.getElementById('submitBtn').disabled = true;
-                
-                try {
-                    const response = await fetch('/analyze', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (!response.ok) {
-                        throw new Error(data.detail || 'Analysis failed');
-                    }
-                    
-                    document.getElementById('scoreValue').textContent = data.score.toFixed(3);
-                    document.getElementById('scoreBand').textContent = data.band.toUpperCase();
-                    document.getElementById('weakestLink').textContent = data.weakest_link;
-                    currentZipUrl = data.zip_url;
-                    
-                    // Display KPIs
-                    const kpiList = document.getElementById('kpiList');
-                    kpiList.innerHTML = '';
-                    if (data.kpi_report && data.kpi_report.kpis) {
-                        data.kpi_report.kpis.forEach(kpi => {
-                            const div = document.createElement('div');
-                            div.className = 'kpi-item';
-                            div.innerHTML = `<strong>${kpi.name}:</strong> ${kpi.value.toFixed(3)} ${kpi.unit} (${kpi.category})`;
-                            kpiList.appendChild(div);
-                        });
-                    }
-                    
-                    // Display E-Service Appraisal
-                    const eServiceData = document.getElementById('eServiceData');
-                    if (data.e_service_appraisal) {
-                        eServiceData.innerHTML = `
-                            <div class="kpi-item"><strong>Total Endpoints:</strong> ${data.e_service_appraisal.total_endpoints}</div>
-                            <div class="kpi-item"><strong>Total Value:</strong> ${data.e_service_appraisal.total_value.toFixed(3)}</div>
-                            <div class="kpi-item"><strong>Avg Value:</strong> ${data.e_service_appraisal.avg_value.toFixed(3)}</div>
-                            <div class="kpi-item"><strong>Liquidity Index:</strong> ${data.e_service_appraisal.liquidity_index.toFixed(3)}</div>
-                        `;
-                    }
-                    
-                    // Display Derivative Portfolio
-                    const derivativeData = document.getElementById('derivativeData');
-                    if (data.derivative_portfolio) {
-                        const pricing = data.derivative_portfolio.pricing || {};
-                        derivativeData.innerHTML = `
-                            <div class="kpi-item"><strong>Total Tokens:</strong> ${data.derivative_portfolio.total_tokens}</div>
-                            <div class="kpi-item"><strong>Total Notional:</strong> ${data.derivative_portfolio.total_notional.toFixed(3)}</div>
-                            <div class="kpi-item"><strong>Weighted Inverse:</strong> ${data.derivative_portfolio.weighted_inverse_value.toFixed(3)}</div>
-                            <div class="kpi-item"><strong>Risk Score:</strong> ${data.derivative_portfolio.risk_score.toFixed(3)}</div>
-                            <div class="kpi-item"><strong>Fair Value:</strong> ${(pricing.fair_value || 0).toFixed(3)}</div>
-                            <div class="kpi-item"><strong>Expected Return:</strong> ${((pricing.expected_return || 0) * 100).toFixed(1)}%</div>
-                        `;
-                    }
-                    
-                    document.getElementById('results').style.display = 'block';
-                } catch (err) {
-                    document.getElementById('error').textContent = err.message;
-                    document.getElementById('error').style.display = 'block';
-                } finally {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('submitBtn').disabled = false;
+        plan = plans.get(request_data.plan_id)
+        if not plan:
+            raise HTTPException(status_code=400, detail="Invalid plan ID")
+        
+        if plan["price"] == 0:
+            # Free plan - no checkout needed
+            return {"url": None, "free": True}
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": f"Overworker {plan['name']} Plan",
+                        },
+                        "unit_amount": plan["price"],
+                    },
+                    "quantity": 1,
                 }
-            });
-            
-            function downloadZip() {
-                if (currentZipUrl) {
-                    window.location.href = currentZipUrl;
-                }
-            }
-        </script>
-    </body>
-    </html>
-    """
+            ],
+            mode="payment",
+            success_url="https://huggingface.co/spaces/luguog/overworker?success=true",
+            cancel_url="https://huggingface.co/spaces/luguog/overworker?canceled=true",
+        )
+        
+        return {"url": checkout_session.url, "free": False}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def use_installed_snap2txt(directory: str) -> str:
@@ -418,10 +229,9 @@ async def analyze_repo(request: RepoRequest):
     secret_scanner = SecretScanner()
     claim_labeler = ClaimLabeler()
     firewall = VerificationFirewall()
-    scorer = OverworkScorer()
+    score_engine = OverworkScorer()
     report_gen = ReportGenerator()
     zip_exporter = ZIPExporter()
-    tokenizer = RepoTokenizer()
     kpi_engine = KPIEngine()
     endpoint_appraiser = EndpointAppraiser()
     derivative_engine = InverseDerivativeEngine()
@@ -463,13 +273,14 @@ async def analyze_repo(request: RepoRequest):
         gate_summary = firewall.get_summary()
         
         # Step 5: Compute Overwork Score
-        score_result = scorer.compute_score(
+        score_result = score_engine.compute_score(
             files, repo_structure.readme, secret_summary, 
             gate_summary, claim_summary
         )
         
         # Step 6: Tokenize repo
-        tokenized_repo: TokenizedRepo = tokenizer.tokenize_repo(files)
+        from tokenization import tokenize_repo
+        tokenized_repo: TokenizedRepo = tokenize_repo(files)
         
         # Step 7: Compute KPIs
         kpi_report: KPIReport = kpi_engine.compute_kpis(
@@ -557,8 +368,17 @@ async def analyze_repo(request: RepoRequest):
             "filename": zip_filename
         }
         
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Analysis failed: {str(e)}",
+            "details": traceback.format_exc()
+        }
     finally:
-        await ingestor.close()
+        try:
+            await ingestor.close()
+        except:
+            pass
 
 
 # In-memory ZIP storage (for demo purposes)
@@ -588,4 +408,5 @@ async def download_zip(filename: str):
 
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
