@@ -486,7 +486,7 @@ async def analyze_repo(request: RepoRequest):
             e_service_appraisal
         )
         
-        # Step 10: Generate report
+        # Step 10: Generate report with secret redaction
         report = report_gen.generate_report(
             request.url,
             repo_structure.owner,
@@ -496,7 +496,8 @@ async def analyze_repo(request: RepoRequest):
             claim_summary,
             gate_summary,
             score_result,
-            len(files)
+            len(files),
+            secret_matches
         )
         
         # Step 11: Export ZIP

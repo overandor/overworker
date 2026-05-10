@@ -1,10 +1,25 @@
 """Report generator - creates Markdown reports from analysis results."""
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from datetime import datetime
 
 
 class ReportGenerator:
     """Generates Markdown reports from Overworker analysis."""
+    
+    def redact_secrets(self, text: str, secret_matches: List) -> str:
+        """Redact secret values from text for safe export."""
+        if not secret_matches:
+            return text
+        
+        redacted = text
+        for match in secret_matches:
+            if hasattr(match, 'secret_value'):
+                # Redact the actual secret value
+                secret = match.secret_value
+                if secret in redacted:
+                    redacted = redacted.replace(secret, "***REDACTED***")
+        
+        return redacted
     
     def generate_report(self,
                        repo_url: str,
@@ -15,8 +30,13 @@ class ReportGenerator:
                        claim_summary: Dict,
                        gate_summary: Dict,
                        overwork_score_result,
-                       files_analyzed: int) -> str:
-        """Generate comprehensive Markdown report."""
+                       files_analyzed: int,
+                       secret_matches: Optional[List] = None) -> str:
+        """Generate comprehensive Markdown report with secret redaction."""
+        
+        # Redact secrets from README if present
+        if readme and secret_matches:
+            readme = self.redact_secrets(readme, secret_matches)
         
         lines = []
         
@@ -82,6 +102,8 @@ class ReportGenerator:
         lines.append("")
         lines.append(f"**Total Matches:** {secret_summary['total_matches']}")
         lines.append(f"**Files Affected:** {secret_summary['files_affected']}")
+        lines.append("")
+        lines.append("> ⚠️ **Note:** Actual secret values have been redacted from this report for security.")
         lines.append("")
         
         lines.append("### By Severity")

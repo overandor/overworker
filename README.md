@@ -12,9 +12,9 @@ Paste a public GitHub URL → Overworker analyzes the repository and produces:
 - **Verification Firewall**: 10 quality gates (README, secrets, tests, config, etc.)
 - **Secret Scanner**: Detects API keys, tokens, and sensitive data
 - **Claim Labeler**: Extracts and verifies README claims against code
-- **KPI Computation**: Computes key performance indicators including liquidity
-- **E-Service Appraisal**: Detects and appraises API endpoints as tradable e-services
-- **Inverse Derivatives**: Tokenizes appraised endpoints into inverse derivative contracts
+- **KPI Computation**: Computes key performance indicators for code quality metrics
+- **E-Service Appraisal**: Detects and analyzes API endpoints as reusable components
+- **Inverse Derivatives**: Analyzes endpoint structure using heuristic derivative metrics
 - **Markdown Report**: Comprehensive analysis document
 - **ZIP Package**: Downloadable archive with all artifacts
 
@@ -25,14 +25,14 @@ Paste a public GitHub URL → Overworker analyzes the repository and produces:
 3. Secret scanner checks for sensitive data
 4. Claim labeler extracts README claims
 5. Verification firewall runs quality gates
-6. Tokenization engine tokenizes repo content
-7. KPI engine computes performance indicators including liquidity
-8. Endpoint appraiser detects and appraises API endpoints as e-services
-9. Inverse derivative engine creates derivative tokens from endpoints
+6. Tokenization engine analyzes repo content structure
+7. KPI engine computes performance indicators for code quality
+8. Endpoint appraiser detects and analyzes API endpoints as reusable components
+9. Heuristic Metrics engine creates heuristic metrics from endpoint analysis (non-financial analytics)
 10. Overwork Score computes readiness
-11. Markdown report is generated
+11. Markdown report is generated with secret redaction
 12. ZIP package is exported
-13. Dashboard displays results with KPIs and derivative metrics
+13. Dashboard displays results with KPIs and heuristic metrics
 
 ## Quick Start
 
@@ -194,52 +194,52 @@ main.py (FastAPI dashboard)
 └── zip_exporter.py (Package export)
 ```
 
-## Financial Features
+## Heuristic Analytics Features
 
 ### KPI Computation
 
-Computes key performance indicators from repository metrics:
+Computes heuristic key performance indicators from repository metrics:
 
 - **Code Quality KPIs**: Lines of code, code density
 - **Activity KPIs**: File count, average file size
 - **Complexity KPIs**: Token diversity, function count
 - **Documentation KPIs**: README coverage, documentation ratio
 - **Maintainability KPIs**: Test coverage indicator, config presence
-- **Liquidity KPI**: Measures tradability and market interest based on completeness, documentation, and endpoint availability
+- **Reusability KPI**: Heuristic measure of code reusability based on completeness, documentation, and endpoint availability
 
 ### E-Service Appraisal
 
-Detects and appraises API endpoints as tradable e-services:
+Detects and analyzes API endpoints as reusable components:
 
 - Detects endpoints from Flask, FastAPI, Express, Django, and generic patterns
 - Categorizes endpoints: Auth, Data, Compute, Storage, Notification, Admin
 - Computes complexity score based on path depth and parameters
-- Computes value score based on category and complexity
-- Computes liquidity score based on endpoint type and reusability
-- Appraises each endpoint with final appraisal value
+- Computes utility score based on category and complexity
+- Computes reusability score based on endpoint type and structure
+- Analyzes each endpoint with final appraisal value
 
-### Inverse Derivatives
+### Heuristic Derivatives
 
-Creates inverse derivative contracts from appraised endpoints:
+Creates heuristic metrics from analyzed endpoints (non-financial analytics):
 
-- Generates unique token IDs for each endpoint
+- Generates unique identifiers for each endpoint
 - Computes inverse value (inverse of appraisal value)
-- Sets collateral ratio (default 50%)
-- Computes maturity date (default 30 days)
-- Computes strike price (10% premium over appraisal)
-- Calculates portfolio risk score based on concentration, volatility, and collateral
-- Computes pricing metrics: fair value, required collateral, leverage ratio, expected return
+- Sets utilization ratio (default 50%)
+- Computes review horizon (default 30 days)
+- Computes target threshold (10% premium over appraisal)
+- Calculates portfolio risk score based on concentration, volatility, and utilization (heuristic only)
+- Computes metrics: utility score, required documentation, leverage ratio, expected quality (all heuristic analytics)
 
 ## Use Cases
 
-- **Investor Due Diligence**: Quick repo assessment for funding decisions
+- **Codebase Assessment**: Quick repo assessment for code quality and maintainability
 - **Acquisition Analysis**: Evaluate target codebases
 - **Open Source Audit**: Verify project health before contribution
 - **Internal QA**: Automated repo health checks
 - **Portfolio Management**: Track readiness across multiple repos
-- **E-Service Valuation**: Appraise API endpoints as tradable assets
-- **Derivative Trading**: Create inverse derivatives from endpoint appraisals
-- **Liquidity Assessment**: Measure tradability of repo assets
+- **E-Service Analysis**: Analyze API endpoints as reusable components
+- **Heuristic Metrics**: Create heuristic metrics from endpoint analysis
+- **Reusability Assessment**: Measure reusability of repo assets maintainability and change velocity using heuristic metrics
 
 ## Limitations
 
@@ -250,7 +250,7 @@ Creates inverse derivative contracts from appraised endpoints:
 - Claim verification is heuristic-based
 - No persistent storage in demo mode
 - Repo cloning may be slow for large repositories
-- Financial derivatives are for demonstration only, not actual trading
+- **Heuristic Analytics Only**: All "derivatives," "tokenization," and "financial metrics" are heuristic scoring systems for demonstration purposes only. These are **NOT** tradable financial instruments, real derivatives, or actual tokenization. They represent analytical heuristics for codebase assessment.
 - E-service appraisal is heuristic-based and not financial advice
 
 ## Future Expansions
