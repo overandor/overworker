@@ -91,12 +91,17 @@ class GitHubIngestor:
             # Walk directory and read text files
             files = []
             readme_content = None
+            total_bytes = 0
             
             for root, dirs, dir_files in os.walk(temp_dir):
                 # Skip .git directory
                 dirs[:] = [d for d in dirs if d != '.git']
                 
                 for file in dir_files:
+                    # Check file count limit
+                    if len(files) >= max_files:
+                        break
+                    
                     full_path = os.path.join(root, file)
                     rel_path = os.path.relpath(full_path, temp_dir)
                     
@@ -107,6 +112,12 @@ class GitHubIngestor:
                             size = os.path.getsize(full_path)
                             if size > 100000:
                                 continue
+                            
+                            # Check total bytes limit
+                            if total_bytes + size > max_total_bytes:
+                                break
+                            
+                            total_bytes += size
                             
                             # Read file content
                             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
