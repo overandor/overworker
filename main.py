@@ -2,15 +2,15 @@
 import os
 import subprocess
 import time
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response, JSONResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 import stripe
-from github_ingestion import GitHubIngestor, RepoFile, RepoStructure
+from github_ingestion import GitHubIngestor, RepoStructure
 from secret_scanner import SecretScanner, SecretMatch
 from claim_labeler import ClaimLabeler, Claim
 from verification_firewall import VerificationFirewall
-from overwork_score import OverworkScorer, ReadinessBand
+from overwork_score import OverworkScorer
 from tokenization import TokenizedRepo
 from kpi_computation import KPIEngine, KPIReport
 from endpoint_appraisal import EndpointAppraiser, EServiceAppraisal
@@ -40,19 +40,10 @@ STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_placeholder")
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Serve the dashboard HTML - direct file read to avoid Jinja2 caching issues."""
+    """Serve the dashboard HTML."""
     template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
-
-
-@app.get("/static/styles.css")
-async def styles_css():
-    """Serve the CSS file."""
-    css_path = os.path.join(os.path.dirname(__file__), "templates", "styles.css")
-    from fastapi.responses import FileResponse
-    return FileResponse(css_path, media_type="text/css")
-
 
 @app.get("/features", response_class=HTMLResponse)
 async def features():
@@ -61,14 +52,12 @@ async def features():
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
 
-
 @app.get("/pricing", response_class=HTMLResponse)
 async def pricing():
     """Serve the pricing page."""
     template_path = os.path.join(os.path.dirname(__file__), "templates", "pricing.html")
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
-
 
 @app.get("/about", response_class=HTMLResponse)
 async def about():
@@ -77,7 +66,6 @@ async def about():
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
 
-
 @app.get("/contact", response_class=HTMLResponse)
 async def contact():
     """Serve the contact page."""
@@ -85,13 +73,46 @@ async def contact():
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
 
-
 @app.get("/docs", response_class=HTMLResponse)
 async def docs():
     """Serve the documentation page."""
     template_path = os.path.join(os.path.dirname(__file__), "templates", "docs.html")
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def analytics_dashboard():
+    """Serve the analytics dashboard preview page."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "dashboard.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/api/dashboard-stats")
+async def dashboard_stats():
+    """Return mock dashboard statistics for preview."""
+    return {
+        "total_analyses": 1247,
+        "active_users": 89,
+        "avg_score": 0.72,
+        "security_issues_found": 342,
+        "repos_improved": 892,
+        "weekly_analyses": [145, 178, 156, 189, 234, 201, 244],
+        "score_distribution": {
+            "production_ready": 234,
+            "demo_ready": 456,
+            "scaffold": 389,
+            "provenance": 123,
+            "fragment": 45
+        }
+    }
+
+
+@app.get("/static/styles.css")
+async def styles_css():
+    """Serve the CSS file."""
+    css_path = os.path.join(os.path.dirname(__file__), "templates", "styles.css")
+    from fastapi.responses import FileResponse
+    return FileResponse(css_path, media_type="text/css")
 
 
 class CheckoutRequest(BaseModel):
@@ -279,8 +300,9 @@ async def analyze_repo(request: RepoRequest):
         )
         
         # Step 6: Tokenize repo
-        from tokenization import tokenize_repo
-        tokenized_repo: TokenizedRepo = tokenize_repo(files)
+        from tokenization import RepoTokenizer
+        tokenizer = RepoTokenizer()
+        tokenized_repo: TokenizedRepo = tokenizer.tokenize_repo(files)
         
         # Step 7: Compute KPIs
         kpi_report: KPIReport = kpi_engine.compute_kpis(
@@ -325,7 +347,6 @@ async def analyze_repo(request: RepoRequest):
         )
         
         # Store ZIP in memory with timestamp for cleanup (in production, use S3 or similar)
-        import time
         zip_filename = f"{repo_structure.repo}_overworker_package_{int(time.time())}.zip"
         zip_storage[zip_filename] = {
             "data": zip_data,
@@ -338,6 +359,10 @@ async def analyze_repo(request: RepoRequest):
             "band": score_result.band.value,
             "weakest_link": score_result.weakest_link,
             "component_scores": score_result.component_scores,
+            "recommendations": score_result.recommendations,
+            "files_analyzed": len(files),
+            "secret_summary": secret_summary,
+            "claim_summary": claim_summary,
             "kpi_report": {
                 "kpis": [
                     {
@@ -377,7 +402,7 @@ async def analyze_repo(request: RepoRequest):
     finally:
         try:
             await ingestor.close()
-        except:
+        except Exception:
             pass
 
 
@@ -388,7 +413,6 @@ zip_storage = {}
 @app.get("/download/{filename}")
 async def download_zip(filename: str):
     """Download ZIP package from in-memory storage."""
-    import time
     
     # Clean up old ZIPs (older than 1 hour)
     current_time = time.time()
@@ -401,7 +425,6 @@ async def download_zip(filename: str):
     
     zip_entry = zip_storage[filename]
     zip_data = zip_entry["data"]
-    from fastapi.responses import Response
     return Response(content=zip_data, media_type="application/zip", headers={
         "Content-Disposition": f"attachment; filename={filename}"
     })
